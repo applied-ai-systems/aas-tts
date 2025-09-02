@@ -1,0 +1,203 @@
+[project]
+name = "aas-tts"
+version = "1.0.0"
+description = "Applied AI Systems - Unified Text-to-Speech package with Kokoro TTS, FastAPI, CLI, and MCP server"
+authors = [
+    { name = "Applied AI Systems", email = "hello@appliedai.systems" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+
+dependencies = [
+    # Core TTS
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+    "librosa>=0.10.0",
+    
+    # Data validation and configuration
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    
+    # CLI framework (Typer as our standard)
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+    
+    # Web framework
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.20.0",
+    
+    # Database
+    "sqlmodel>=0.0.14",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.12.0",
+    
+    # MCP server
+    "mcp>=1.0.0",
+    
+    # Audio processing
+    "soundfile>=0.12.0",
+    "numpy>=1.24.0",
+    "scipy>=1.11.0",
+    
+    # Utilities
+    "loguru>=0.7.0",
+    "python-multipart>=0.0.6",
+    "httpx>=0.25.0",
+    "aiofiles>=23.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.0.0",
+]
+
+gpu = [
+    "torch[cuda]",
+    "torchaudio[cuda]",
+]
+
+all = [
+    "aas-tts[dev,gpu]",
+]
+
+[project.scripts]
+aas-tts = "aas_tts.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/applied-ai-systems/aas-tts"
+Repository = "https://github.com/applied-ai-systems/aas-tts"
+Documentation = "https://github.com/applied-ai-systems/aas-tts/docs"
+"Bug Tracker" = "https://github.com/applied-ai-systems/aas-tts/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aas_tts"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+]
+
+# Testing configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--cov=aas_tts",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+# Code formatting
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["aas_tts"]
+skip_glob = [".*", "venv*"]
+
+# Type checking
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "torch.*",
+    "torchaudio.*", 
+    "librosa.*",
+    "soundfile.*",
+    "scipy.*",
+    "numpy.*",
+]
+ignore_missing_imports = true
+
+# Linting
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503", "F401"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "dist",
+    "build",
+    "*.egg",
+    ".venv",
+    ".tox",
+]
+
+[tool.coverage.run]
+source = ["src/aas_tts"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/conftest.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
