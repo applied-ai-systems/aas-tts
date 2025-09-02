@@ -14,46 +14,38 @@ dependencies = [
     "torch>=2.0.0",
     "torchaudio>=2.0.0",
     "librosa>=0.10.0",
-    
     # Data validation and configuration
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
-    
     # CLI framework (Typer as our standard)
     "typer[all]>=0.9.0",
     "rich>=13.0.0",
-    
     # Web framework
     "fastapi>=0.100.0",
     "uvicorn[standard]>=0.20.0",
-    
     # Database
     "sqlmodel>=0.0.14",
     "sqlalchemy>=2.0.0",
     "alembic>=1.12.0",
-    
     # MCP server
     "mcp>=1.0.0",
-    
     # Process orchestration
     "circus>=0.18.0",
     "python-on-whales>=0.72.0",
-    
     # Audio processing
     "soundfile>=0.12.0",
     "numpy>=1.24.0",
     "scipy>=1.11.0",
-    
     # Utilities
     "loguru>=0.7.0",
     "python-multipart>=0.0.6",
     "httpx>=0.25.0",
     "aiofiles>=23.0.0",
     "python-dotenv>=1.0.0",
-    
     # Streaming support
     "sse-starlette>=1.8.2",
     "websockets>=12.0.0",
+    "fastmcp>=2.12.0",
 ]
 
 [project.optional-dependencies]

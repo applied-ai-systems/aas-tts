@@ -358,6 +358,7 @@ def mcp(
     action: Annotated[str, typer.Argument(help="Action: serve")],
     stdio: Annotated[bool, typer.Option("--stdio", help="Run in stdio mode")] = False,
     backend: Annotated[str, typer.Option("--backend", help="Orchestration backend (simple, circus, docker)")] = "simple",
+    fastmcp: Annotated[bool, typer.Option("--fastmcp", help="Use FastMCP implementation")] = True,
 ):
     """
     🔌 MCP server management
@@ -365,44 +366,69 @@ def mcp(
     Examples:
       aas-tts mcp serve --stdio
       aas-tts mcp serve --backend docker --stdio
+      aas-tts mcp serve --stdio --fastmcp
+      aas-tts mcp serve --stdio --no-fastmcp  # Use legacy MCP
     """
     if action == "serve":
-        asyncio.run(_serve_mcp_async(stdio, backend))
+        if fastmcp and stdio:
+            # FastMCP runs its own event loop, so call directly
+            server_type = "FastMCP"
+            rich_print(Panel.fit(
+                f"🔌 Starting AAS-TTS {server_type} server in stdio mode...\n"
+                f"🏗️ Backend: [blue]{backend}[/blue]\n"
+                f"🎙️ TTS API will be automatically managed\n"
+                f"⚡ Server Type: [green]{server_type}[/green]",
+                title="🔌 MCP Server Starting",
+                border_style="green"
+            ))
+            
+            from ..mcp.fastmcp_server import run_fastmcp_server
+            run_fastmcp_server()
+        else:
+            # Use legacy MCP or other modes that require async
+            asyncio.run(_serve_mcp_async(stdio, backend, fastmcp))
     else:
         rich_print(f"❌ [red]Unknown MCP action: {action}[/red]")
         rich_print("Valid actions: serve")
         raise typer.Exit(1)
 
 
-async def _serve_mcp_async(stdio: bool, backend: str):
+async def _serve_mcp_async(stdio: bool, backend: str, fastmcp: bool):
     """Start MCP server"""
     try:
         if stdio:
+            server_type = "FastMCP" if fastmcp else "Legacy MCP"
             rich_print(Panel.fit(
-                f"🔌 Starting AAS-TTS MCP server in stdio mode...\n"
+                f"🔌 Starting AAS-TTS {server_type} server in stdio mode...\n"
                 f"🏗️ Backend: [blue]{backend}[/blue]\n"
-                f"🎙️ TTS API will be automatically managed",
+                f"🎙️ TTS API will be automatically managed\n"
+                f"⚡ Server Type: [green]{server_type}[/green]",
                 title="🔌 MCP Server Starting",
                 border_style="green"
             ))
             
-            # Import and start MCP server
-            from ..mcp.server import MCPServer
-            from ..orchestration.process_manager import ProcessBackend
-            
-            # Set orchestration backend
-            if backend == "circus":
-                backend_enum = ProcessBackend.CIRCUS
-            elif backend == "docker":
-                backend_enum = ProcessBackend.DOCKER
+            if fastmcp:
+                # Use FastMCP implementation
+                from ..mcp.fastmcp_server import run_fastmcp_server
+                run_fastmcp_server()
             else:
-                backend_enum = ProcessBackend.SIMPLE
-            
-            # Create and run MCP server
-            server = MCPServer()
-            server.process_manager = None  # Will be initialized with correct backend
-            
-            await server.run_stdio()
+                # Use legacy MCP implementation  
+                from ..mcp.server import MCPServer
+                from ..orchestration.process_manager import ProcessBackend
+                
+                # Set orchestration backend
+                if backend == "circus":
+                    backend_enum = ProcessBackend.CIRCUS
+                elif backend == "docker":
+                    backend_enum = ProcessBackend.DOCKER
+                else:
+                    backend_enum = ProcessBackend.SIMPLE
+                
+                # Create and run MCP server
+                server = MCPServer()
+                server.process_manager = None  # Will be initialized with correct backend
+                
+                await server.run_stdio()
         else:
             rich_print("❌ [red]Only stdio mode is currently supported[/red]")
             rich_print("Use: aas-tts mcp serve --stdio")

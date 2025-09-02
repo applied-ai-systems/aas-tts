@@ -1,14 +1,34 @@
 {
   "mcpServers": {
-    "aas-tts": {
+    "aas-tts-fastmcp": {
       "command": "uvx",
-      "args": ["aas-tts", "mcp", "serve", "--stdio"],
-      "env": {
-        "AAS_TTS_LOG_LEVEL": "INFO",
-        "AAS_TTS_ORCHESTRATION_BACKEND": "circus",
-        "AAS_TTS_API_PORT": "8880",
-        "AAS_TTS_DEFAULT_VOICE": "af_bella"
-      }
+      "args": [
+        "aas-tts", 
+        "mcp", 
+        "serve", 
+        "--stdio",
+        "--fastmcp"
+      ],
+      "description": "AAS-TTS FastMCP Server - Advanced Text-to-Speech capabilities",
+      "capabilities": [
+        "tools",
+        "resources", 
+        "prompts"
+      ]
+    },
+    "aas-tts-legacy": {
+      "command": "uvx",
+      "args": [
+        "aas-tts",
+        "mcp", 
+        "serve",
+        "--stdio", 
+        "--no-fastmcp"
+      ],
+      "description": "AAS-TTS Legacy MCP Server - Original MCP implementation",
+      "capabilities": [
+        "tools"
+      ]
     }
   }
 }
