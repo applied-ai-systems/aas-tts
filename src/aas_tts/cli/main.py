@@ -49,14 +49,16 @@ def synthesize(
     speed: Annotated[float, typer.Option("--speed", "-s", help="Speech speed", min=0.1, max=3.0)] = 1.0,
     sample_rate: Annotated[Optional[int], typer.Option("--sample-rate", "-r", help="Sample rate")] = None,
     overwrite: Annotated[bool, typer.Option("--overwrite", help="Overwrite existing files")] = False,
+    play: Annotated[bool, typer.Option("--play/--no-play", help="Play audio through system speakers")] = True,
     verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
 ):
     """
     🎙️  Synthesize text to speech
     
     Examples:
-      aas-tts synthesize "Hello, world!" --voice af_bella --output hello.wav
-      aas-tts synthesize "Fast speech" --speed 1.5 --format mp3
+      aas-tts synthesize "Hello, world!" --voice af_bella    # Play through speakers
+      aas-tts synthesize "Hello, world!" --output hello.wav  # Save to file and play
+      aas-tts synthesize "Fast speech" --speed 1.5 --no-play # Generate only, no playback
       aas-tts synthesize "Conference call test" --voice am_adam --sample-rate 16000
     """
     asyncio.run(_synthesize_async(
@@ -67,6 +69,7 @@ def synthesize(
         speed=speed,
         sample_rate=sample_rate,
         overwrite=overwrite,
+        play=play,
         verbose=verbose
     ))
 
@@ -79,6 +82,7 @@ async def _synthesize_async(
     speed: float,
     sample_rate: Optional[int],
     overwrite: bool,
+    play: bool,
     verbose: bool
 ):
     """Async synthesis implementation"""
@@ -136,11 +140,44 @@ async def _synthesize_async(
         
         # Show results
         if response.success:
+            # Play audio if requested
+            playback_status = ""
+            if play:
+                try:
+                    from ..services.audio_playback_service import get_audio_playback_service, PlaybackRequest
+                    
+                    playback_service = await get_audio_playback_service()
+                    
+                    # Get audio data for playback
+                    if hasattr(response, 'audio_data') and response.audio_data:
+                        audio_data = response.audio_data
+                    else:
+                        # Read from file if audio_data not available
+                        with open(response.audio_path, 'rb') as f:
+                            audio_data = f.read()
+                    
+                    playback_request = PlaybackRequest(
+                        audio_data=audio_data,
+                        format=format.value
+                    )
+                    
+                    with console.status("🔊 Playing audio..."):
+                        playback_response = await playback_service.play_audio(playback_request)
+                    
+                    if playback_response.success:
+                        playback_status = f"\n🔊 [green]Played through {playback_response.backend_used} speakers[/green]"
+                    else:
+                        playback_status = f"\n🔊 [yellow]Playback failed: {playback_response.error}[/yellow]"
+                        
+                except Exception as e:
+                    playback_status = f"\n🔊 [yellow]Playback error: {e}[/yellow]"
+            
             rich_print(Panel.fit(
                 f"✅ [green]Synthesis successful![/green]\n"
                 f"📁 Output: [blue]{response.audio_path}[/blue]\n"
                 f"⏱️  Processing time: [yellow]{response.processing_time:.2f}s[/yellow]" +
-                (f"\n🎵 Audio duration: [cyan]{response.audio_duration:.2f}s[/cyan]" if response.audio_duration else ""),
+                (f"\n🎵 Audio duration: [cyan]{response.audio_duration:.2f}s[/cyan]" if response.audio_duration else "") +
+                playback_status,
                 title="🎙️ TTS Results",
                 border_style="green"
             ))
@@ -279,6 +316,56 @@ async def _info_async(voice: str):
             
     except Exception as e:
         rich_print(f"❌ [red]Error getting voice info:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def test_audio():
+    """
+    🔊 Test system speaker audio playback
+    """
+    asyncio.run(_test_audio_async())
+
+
+async def _test_audio_async():
+    """Test audio playback implementation"""
+    try:
+        from ..services.audio_playback_service import get_audio_playback_service
+        
+        with console.status("[bold green]Testing audio playback..."):
+            service = await get_audio_playback_service()
+            
+            # Get available backends
+            backends = await service.get_available_backends()
+            
+            rich_print(f"🔊 [blue]Available audio backends:[/blue] {', '.join(backends)}")
+            
+            # Test playback
+            test_result = await service.test_playback()
+            
+        if test_result["success"]:
+            rich_print(Panel.fit(
+                f"✅ [green]Audio playback test successful![/green]\n"
+                f"🔊 Backend: [blue]{test_result['backend_used']}[/blue]\n"
+                f"🎵 Test tone: [yellow]{test_result['frequency']} Hz[/yellow]\n"
+                f"⏱️  Duration: [cyan]{test_result['duration']}s[/cyan]",
+                title="🔊 Audio Test Results",
+                border_style="green"
+            ))
+        else:
+            rich_print(Panel.fit(
+                f"❌ [red]Audio playback test failed:[/red] {test_result['error']}",
+                title="🔊 Audio Test Results",
+                border_style="red"
+            ))
+            raise typer.Exit(1)
+            
+    except Exception as e:
+        rich_print(Panel.fit(
+            f"❌ [red]Audio test error:[/red] {e}",
+            title="🔊 Audio Test",
+            border_style="red"
+        ))
         raise typer.Exit(1)
 
 

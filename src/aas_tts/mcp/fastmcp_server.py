@@ -29,6 +29,7 @@ class SynthesisRequest(BaseModel):
     format: str = "wav"
     speed: float = 1.0
     output_file: Optional[str] = None
+    play_audio: bool = True  # Play through system speakers by default
 
 
 class StreamingRequest(BaseModel):
@@ -51,10 +52,10 @@ async def synthesize_speech(request: SynthesisRequest) -> Dict[str, Any]:
     Synthesize text to speech and return audio data or save to file
     
     This tool converts text to natural-sounding speech using advanced TTS models.
-    It supports multiple voices, formats, and can save directly to files.
+    It supports multiple voices, formats, system speaker playback, and can save directly to files.
     
     Args:
-        request: Synthesis parameters including text, voice, format, speed, and optional output file
+        request: Synthesis parameters including text, voice, format, speed, playback option, and optional output file
         
     Returns:
         Dictionary with synthesis results including success status, audio data (base64), 
@@ -98,7 +99,7 @@ async def synthesize_speech(request: SynthesisRequest) -> Dict[str, Any]:
                 # Encode audio data as base64
                 audio_b64 = base64.b64encode(response.audio_data).decode('utf-8')
                 
-                return {
+                result = {
                     "success": True,
                     "audio_data": audio_b64,
                     "audio_size": len(response.audio_data),
@@ -108,6 +109,36 @@ async def synthesize_speech(request: SynthesisRequest) -> Dict[str, Any]:
                     "sample_rate": response.sample_rate,
                     "voice": response.voice
                 }
+                
+                # Play audio through system speakers if requested
+                if request.play_audio:
+                    try:
+                        from ..services.audio_playback_service import get_audio_playback_service, PlaybackRequest
+                        
+                        playback_service = await get_audio_playback_service()
+                        playback_request = PlaybackRequest(
+                            audio_data=response.audio_data,
+                            format=request.format
+                        )
+                        
+                        playback_response = await playback_service.play_audio(playback_request)
+                        
+                        result["playback"] = {
+                            "success": playback_response.success,
+                            "backend_used": playback_response.backend_used,
+                            "error": playback_response.error if not playback_response.success else None
+                        }
+                        
+                        logger.info(f"Audio played through {playback_response.backend_used} speakers: {playback_response.success}")
+                        
+                    except Exception as e:
+                        logger.error(f"Audio playback failed: {e}")
+                        result["playback"] = {
+                            "success": False,
+                            "error": str(e)
+                        }
+                
+                return result
             else:
                 return {
                     "success": False,
@@ -304,6 +335,46 @@ async def check_api_health() -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"FastMCP health check error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@mcp.tool
+async def test_audio_playback() -> Dict[str, Any]:
+    """
+    Test system speaker audio playback functionality
+    
+    This tool tests the audio playback system by playing a simple test tone
+    through the system speakers. Useful for verifying audio setup.
+    
+    Returns:
+        Dictionary with test results including available backends and playback status
+    """
+    try:
+        from ..services.audio_playback_service import get_audio_playback_service
+        
+        logger.info("Testing audio playback system...")
+        
+        # Get playback service
+        service = await get_audio_playback_service()
+        
+        # Get available backends
+        backends = await service.get_available_backends()
+        
+        # Run playback test
+        test_result = await service.test_playback()
+        
+        return {
+            "success": test_result["success"],
+            "available_backends": backends,
+            "test_result": test_result,
+            "message": "Audio playback test completed successfully" if test_result["success"] else "Audio playback test failed"
+        }
+        
+    except Exception as e:
+        logger.error(f"Audio playback test error: {e}")
         return {
             "success": False,
             "error": str(e)
