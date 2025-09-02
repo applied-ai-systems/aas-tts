@@ -126,11 +126,10 @@ async def _synthesize_async(
                 safe_text = "_".join(safe_text.split())
                 output = Path(f"{safe_text}_{voice}.{format.value}")
                 
-                await service.audio_service.save_audio(
-                    audio_data=response.audio_data,
-                    output_path=output,
-                    format=format
-                )
+                # Save audio data to file
+                output.parent.mkdir(parents=True, exist_ok=True)
+                with open(output, 'wb') as f:
+                    f.write(response.audio_data)
                 response.audio_path = output
             
             progress.update(task, advance=30, description="✅ Complete!")
