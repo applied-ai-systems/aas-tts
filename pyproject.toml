@@ -35,6 +35,10 @@ dependencies = [
     # MCP server
     "mcp>=1.0.0",
     
+    # Process orchestration
+    "circus>=0.18.0",
+    "python-on-whales>=0.72.0",
+    
     # Audio processing
     "soundfile>=0.12.0",
     "numpy>=1.24.0",

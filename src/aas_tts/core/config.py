@@ -45,6 +45,10 @@ class AASSettings(BaseSettings):
     use_gpu: bool = Field(True, description="Use GPU if available")
     gpu_memory_fraction: float = Field(0.8, ge=0.1, le=1.0, description="GPU memory fraction")
     
+    # Orchestration Configuration
+    orchestration_backend: str = Field("simple", description="Process orchestration backend (simple, circus, docker)")
+    api_port: int = Field(8880, description="Default API server port")
+    
     # Audio Processing
     default_voice: str = Field("af_bella", description="Default voice")
     max_text_length: int = Field(10000, description="Maximum text length")

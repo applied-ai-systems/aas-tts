@@ -354,6 +354,66 @@ def version():
 
 
 @app.command()
+def mcp(
+    action: Annotated[str, typer.Argument(help="Action: serve")],
+    stdio: Annotated[bool, typer.Option("--stdio", help="Run in stdio mode")] = False,
+    backend: Annotated[str, typer.Option("--backend", help="Orchestration backend (simple, circus, docker)")] = "simple",
+):
+    """
+    🔌 MCP server management
+    
+    Examples:
+      aas-tts mcp serve --stdio
+      aas-tts mcp serve --backend docker --stdio
+    """
+    if action == "serve":
+        asyncio.run(_serve_mcp_async(stdio, backend))
+    else:
+        rich_print(f"❌ [red]Unknown MCP action: {action}[/red]")
+        rich_print("Valid actions: serve")
+        raise typer.Exit(1)
+
+
+async def _serve_mcp_async(stdio: bool, backend: str):
+    """Start MCP server"""
+    try:
+        if stdio:
+            rich_print(Panel.fit(
+                f"🔌 Starting AAS-TTS MCP server in stdio mode...\n"
+                f"🏗️ Backend: [blue]{backend}[/blue]\n"
+                f"🎙️ TTS API will be automatically managed",
+                title="🔌 MCP Server Starting",
+                border_style="green"
+            ))
+            
+            # Import and start MCP server
+            from ..mcp.server import MCPServer
+            from ..orchestration.process_manager import ProcessBackend
+            
+            # Set orchestration backend
+            if backend == "circus":
+                backend_enum = ProcessBackend.CIRCUS
+            elif backend == "docker":
+                backend_enum = ProcessBackend.DOCKER
+            else:
+                backend_enum = ProcessBackend.SIMPLE
+            
+            # Create and run MCP server
+            server = MCPServer()
+            server.process_manager = None  # Will be initialized with correct backend
+            
+            await server.run_stdio()
+        else:
+            rich_print("❌ [red]Only stdio mode is currently supported[/red]")
+            rich_print("Use: aas-tts mcp serve --stdio")
+            raise typer.Exit(1)
+            
+    except Exception as e:
+        rich_print(f"❌ [red]Failed to start MCP server:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
 def server(
     action: Annotated[str, typer.Argument(help="Action: start, stop, status")],
     host: Annotated[str, typer.Option("--host", help="Server host")] = "0.0.0.0",

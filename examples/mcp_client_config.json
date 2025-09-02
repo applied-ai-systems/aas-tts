@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "aas-tts": {
+      "command": "uvx",
+      "args": ["aas-tts", "mcp", "serve", "--stdio"],
+      "env": {
+        "AAS_TTS_LOG_LEVEL": "INFO",
+        "AAS_TTS_ORCHESTRATION_BACKEND": "circus",
+        "AAS_TTS_API_PORT": "8880",
+        "AAS_TTS_DEFAULT_VOICE": "af_bella"
+      }
+    }
+  }
+}

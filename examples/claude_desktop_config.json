@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "aas-tts": {
+      "command": "uvx", 
+      "args": ["aas-tts", "mcp", "serve", "--stdio"]
+    }
+  }
+}
