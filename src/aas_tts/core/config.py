@@ -128,13 +128,10 @@ class AASSettings(BaseSettings):
     def to_dict(self) -> Dict[str, Any]:
         """Convert settings to dictionary"""
         return self.model_dump()
-    
-    class Config:
-        arbitrary_types_allowed = True
 
 
 # Global settings instance
-_settings: Optional[AASSettings] = None
+_settings: Optional["AASSettings"] = None
 
 
 def get_settings() -> AASSettings:
@@ -175,6 +172,3 @@ class CLIConfig(BaseSettings):
     batch_size: int = Field(1, ge=1, le=100, description="Batch processing size")
     parallel: bool = Field(True, description="Enable parallel processing")
     max_workers: int = Field(4, ge=1, le=32, description="Maximum worker threads")
-    
-    class Config:
-        arbitrary_types_allowed = True

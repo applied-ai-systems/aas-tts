@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, validator, ConfigDict
 from sqlmodel import SQLModel, Field as SQLField, Column, DateTime
-from sqlalchemy import func
+from sqlalchemy import func, JSON
 
 
 class VoiceCategory(str, Enum):
@@ -142,7 +142,7 @@ class TTSJob(SQLModel, table=True):
     engine: str = SQLField(max_length=20, default="kokoro")
     
     # Parameters (JSON)
-    parameters: Optional[Dict[str, Any]] = SQLField(default=None, sa_column=Column(Dict))
+    parameters: Optional[Dict[str, Any]] = SQLField(default=None, sa_column=Column(JSON))
     
     # Results
     success: bool = SQLField(default=False)
@@ -220,9 +220,6 @@ class AudioConfig(BaseModel):
     max_duration: float = Field(300.0, description="Maximum audio duration (seconds)")
     normalize_audio: bool = Field(True, description="Normalize audio output")
     temp_dir: Path = Field(Path("/tmp/aas-tts"), description="Temporary directory")
-    
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class MCPConfig(BaseModel):
